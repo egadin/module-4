@@ -26,7 +26,11 @@
 
                 Add data structures to manage the threads here.
 ********************************************************************************/
+thread_t* top=NULL;
+thread_t* bottom=NULL;
 
+
+//ska göra tre separata listor en för ready en för waiting och en för terminated.
 
 
 
@@ -35,7 +39,12 @@
 
                       Add internal helper functions here.
 ********************************************************************************/
-
+thread_t *getRunning(thread_t*current) {
+  if (current->state == running)
+    return current;
+  else
+    getRunning(current->next);
+}
 
 
 
@@ -50,10 +59,29 @@ int  init(){
 
 
 tid_t spawn(void (*start)()){
+  thread_t* newThread = (thread_t*) malloc(sizeof(thread_t));
+  newThread->state=ready;
+  makecontext(&newThread->ctx, start, 0);
+  if (top==NULL){
+    newThread->next=NULL;
+    top=newThread;
+    bottom=newThread;
+    newThread->next=NULL;
+  }
+  else {
+    newThread->next=top;
+    bottom->next=newThread;
+    bottom=newThread;
+  }
+  
   return -1;
 }
 
 void yield(){
+  thread_t *current=getRunning(top);
+  current->state=ready;
+  current->next
+  top
 }
 
 void  done(){
@@ -61,4 +89,5 @@ void  done(){
 
 tid_t join() {
   return -1;
+
 }
