@@ -82,9 +82,12 @@ tid_t spawn(void (*start)()){
   }
 
   newThread.ctx.uc_link           = &newThread.next->ctx;
-  newThread.ctx->uc_stack.ss_sp    = stack;
-  newThread.ctx->uc_stack.ss_size  = STACK_SIZE;
-  newThread.ctx->uc_stack.ss_flags = 0;
+  newThread.ctx.uc_stack.ss_sp    = stack;
+  newThread.ctx.uc_stack.ss_size  = STACK_SIZE;
+  newThread.ctx.uc_stack.ss_flags = 0;
+
+  makecontext(&newThread.ctx, start, 0);
+  
   return -1;
 }
 
