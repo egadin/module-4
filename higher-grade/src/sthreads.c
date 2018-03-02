@@ -26,11 +26,20 @@
 
                 Add data structures to manage the threads here.
 ********************************************************************************/
-thread_t* top=NULL;
-thread_t* bottom=NULL;
+struct queue {
+  thread_t *first;
+  thread_t *last;
+};
 
+struct threadlist {
+  thread_t *running;
 
-//ska göra tre separata listor en för ready en för waiting och en för terminated.
+  struct queue ready;
+  struct queue waiting;
+  struct queue terminated;
+};
+
+struct threadlist threadmanager;
 
 
 
@@ -39,14 +48,75 @@ thread_t* bottom=NULL;
 
                       Add internal helper functions here.
 ********************************************************************************/
-thread_t *getRunning(thread_t*current) {
-  if (current->state == running)
-    return current;
-  else
-    getRunning(current->next);
+thread_t *getrunning() {
+return threadmanager.running;
+};
+
+void addtoready(thread_t *thread) {
+  if (threadmanager.ready.first==NULL) {
+    threadmanager.ready.first=threadmanager.ready.last=thread;
+  }
+  else {
+    threadmanager.ready.first->next=thread;
+    threadmanager.ready.first=thread;
+  }
+
 }
 
+thread_t *getfromready() {
+  if (threadmanager.ready.last==NULL) {
+    return NULL;
+  }
+  else {
+    thread_t *tobereturned=threadmanager.ready.last;
+    threadmanager.ready.last=threadmanager.ready.last->next;
+    return tobereturned;
+  }
+};
 
+void addtowaiting(thread_t *thread) {
+  if (threadmanager.waiting.first==NULL) {
+    threadmanager.waiting.first=threadmanager.waiting.last=thread;
+  }
+  else {
+    threadmanager.waiting.first->next=thread;
+    threadmanager.waiting.first=thread;
+  }
+
+}
+
+thread_t *getfromwaiting() {
+  if (threadmanager.waiting.last==NULL) {
+    return NULL;
+  }
+  else {
+    thread_t *tobereturned=threadmanager.waiting.last;
+    threadmanager.waiting.last=threadmanager.waiting.last->next;
+    return tobereturned;
+  }
+};
+
+void addtoterminated(thread_t *thread) {
+  if (threadmanager.terminated.first==NULL) {
+    threadmanager.terminated.first=threadmanager.terminated.last=thread;
+  }
+  else {
+    threadmanager.terminated.first->next=thread;
+    threadmanager.terminated.first=thread;
+  }
+
+}
+
+thread_t *getfromterminated() {
+  if (threadmanager.terminated.last==NULL) {
+    return NULL;
+  }
+  else {
+    thread_t *tobereturned=threadmanager.terminated.last;
+    threadmanager.terminated.last=threadmanager.terminated.last->next;
+    return tobereturned;
+  }
+};
 
 /*******************************************************************************
                     Implementation of the Simple Threads API
