@@ -138,28 +138,29 @@ int  init(){
 }
 
 void start(){
-thread_t *startThread = getFromReady();
+ thread_t *startThread = getFromReady();
  startThread->state=running;
  threadManager.running=startThread;
- setcontext(&threadManager.ready.first->ctx);
+ printf("%lu : \n",(unsigned long int)&startThread->ctx);
+ setcontext(&startThread->ctx);
  puts("i should not print");
 }
 
 tid_t spawn(void (*start)()){
   /* Start by creating a thread */
-  thread_t newThread;
+  thread_t *newThread=malloc(sizeof(thread_t));
   
   /* Initialize all the values of our new thread
    The new tid will be the largest one */
   maxId = maxId+1;
-  newThread.tid = maxId;
-  newThread.state = ready;
+  newThread->tid = maxId;
+  newThread->state = ready;
   //  newThread.ctx = start;
 
-  /* We make our new thread the bottom thread, it already
+ /* We make our new thread the bottom thread, it already
      points to our top thread */
   
-  addToReady(&newThread);
+  addToReady(newThread);
   
   /* Now we need to intialize contexts, we start by allocating
      memory to be used as the stack of the context. This following
@@ -171,18 +172,19 @@ tid_t spawn(void (*start)()){
     exit(EXIT_FAILURE);
   }
 
-  if (getcontext(&newThread.ctx) < 0) {
+  if (getcontext(&newThread->ctx) < 0) {
     perror("getcontext");
     exit(EXIT_FAILURE);
   }
 
-  newThread.ctx.uc_link           = &newThread.next->ctx;
-  newThread.ctx.uc_stack.ss_sp    = stack;
-  newThread.ctx.uc_stack.ss_size  = STACK_SIZE;
-  newThread.ctx.uc_stack.ss_flags = 0;
+  newThread->ctx.uc_link           = &newThread->next->ctx;
+  newThread->ctx.uc_stack.ss_sp    = stack;
+  newThread->ctx.uc_stack.ss_size  = STACK_SIZE;
+  newThread->ctx.uc_stack.ss_flags = 0;
 
-  makecontext(&newThread.ctx, start, 0);
-  
+  makecontext(&newThread->ctx, start, 0);
+   printf("%lu : \n",(unsigned long int)&newThread->ctx);
+  //setcontext(&newThread.ctx);
   return -1;
 }
 
