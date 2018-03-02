@@ -92,10 +92,17 @@ tid_t spawn(void (*start)()){
 }
 
 void yield(){
-  
+  ucontext_t *next_ctx, *running_ctx;
+  running_ctx = threadhandler->running;
+  next_ctx = getfromready();
+  if (swapcontext(&running_ctx, &next_ctx) < 0) {
+    perror("swapcontext");
+    exit(EXIT_FAILURE);
+  }
 }
 
 void  done(){
+  
 }
 
 tid_t join() {
