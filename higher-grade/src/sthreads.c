@@ -128,24 +128,7 @@ int  init(){
 }
 
 
-tid_t spawn(void (*start)()){
-  thread_t* newThread = (thread_t*) malloc(sizeof(thread_t));
-  newThread->state=ready;
-  makecontext(&newThread->ctx, start, 0);
-  if (top==NULL){
-    newThread->next=NULL;
-    top=newThread;
-    bottom=newThread;
-    newThread->next=NULL;
-  }
-  else {
-    newThread->next=top;
-    bottom->next=newThread;
-    bottom=newThread;
-  }
-  
-  return -1;
-}
+
 struct queue {
   thread_t *first;
   thread_t *last;
