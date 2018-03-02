@@ -25,6 +25,7 @@ typedef struct thread thread_t;
    your own liking.
 */
 struct thread {
+  int doneCaller;
   tid_t tid;
   state_t state;
   ucontext_t ctx;
@@ -49,6 +50,10 @@ new functions to the API.
    Returns 1 on success and a negative value on failure.
 */
 int init();
+
+void start();
+
+
 
 /* Creates a new thread executing the start function.
 

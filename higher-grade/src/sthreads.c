@@ -31,99 +31,118 @@ struct queue {
   thread_t *last;
 };
 
-struct threadlist {
+struct threadList {
   thread_t *running;
-
   struct queue ready;
   struct queue waiting;
   struct queue terminated;
 };
 
-struct threadlist threadmanager;
+struct threadList threadManager;
 
-
+int maxId=0;
 
 /*******************************************************************************
                              Auxiliary functions
 
                       Add internal helper functions here.
 ********************************************************************************/
-thread_t *getrunning() {
-return threadmanager.running;
-};
+thread_t *getRunning() {
+return threadManager.running;
+}
 
-void addtoready(thread_t *thread) {
-  if (threadmanager.ready.first==NULL) {
-    threadmanager.ready.first=threadmanager.ready.last=thread;
+void addToRunning(thread_t *newJob) {
+  newJob->state=running;
+  thread_t *temp=threadManager.running;
+  threadManager.running=newJob;
+  swapcontext(&temp->ctx, &newJob->ctx);
+  
+  
+}
+
+void addToReady(thread_t *thread) {
+  if (threadManager.ready.last==NULL) {
+    threadManager.ready.first=threadManager.ready.last=thread;
   }
   else {
-    threadmanager.ready.first->next=thread;
-    threadmanager.ready.first=thread;
+    threadManager.ready.last->next=thread;
+    threadManager.ready.last=thread;
   }
 
 }
 
-thread_t *getfromready() {
-  if (threadmanager.ready.last==NULL) {
+thread_t *getFromReady() {
+  if (threadManager.ready.first==NULL) {
     return NULL;
   }
   else {
-    thread_t *tobereturned=threadmanager.ready.last;
-    threadmanager.ready.last=threadmanager.ready.last->next;
-    return tobereturned;
+    thread_t *toBeReturned=threadManager.ready.first;
+    threadManager.ready.first=threadManager.ready.first->next;
+    return toBeReturned;
   }
-};
+}
 
-void addtowaiting(thread_t *thread) {
-  if (threadmanager.waiting.first==NULL) {
-    threadmanager.waiting.first=threadmanager.waiting.last=thread;
+void addToWaiting(thread_t *thread) {
+  if (threadManager.waiting.last==NULL) {
+    threadManager.waiting.first=threadManager.waiting.last=thread;
   }
   else {
-    threadmanager.waiting.first->next=thread;
-    threadmanager.waiting.first=thread;
+    threadManager.waiting.last->next=thread;
+    threadManager.waiting.last=thread;
   }
 
 }
 
-thread_t *getfromwaiting() {
-  if (threadmanager.waiting.last==NULL) {
+thread_t *getFromWaiting() {
+  if (threadManager.waiting.first==NULL) {
     return NULL;
   }
   else {
-    thread_t *tobereturned=threadmanager.waiting.last;
-    threadmanager.waiting.last=threadmanager.waiting.last->next;
-    return tobereturned;
+    thread_t *toBeReturned=threadManager.waiting.first;
+    threadManager.waiting.first=threadManager.waiting.first->next;
+    return toBeReturned;
   }
-};
+}
 
-void addtoterminated(thread_t *thread) {
-  if (threadmanager.terminated.first==NULL) {
-    threadmanager.terminated.first=threadmanager.terminated.last=thread;
+void addToTerminated(thread_t *thread) {
+  if (threadManager.terminated.last==NULL) {
+    threadManager.terminated.first=threadManager.terminated.last=thread;
   }
   else {
-    threadmanager.terminated.first->next=thread;
-    threadmanager.terminated.first=thread;
+    threadManager.terminated.last->next=thread;
+    threadManager.terminated.last=thread;
   }
 
 }
-
-thread_t *getfromterminated() {
-  if (threadmanager.terminated.last==NULL) {
+/*
+thread_t *getFromTerminated() {
+  if (threadManager.terminated.first==NULL) {
     return NULL;
   }
   else {
-    thread_t *tobereturned=threadmanager.terminated.last;
-    threadmanager.terminated.last=threadmanager.terminated.last->next;
-    return tobereturned;
+    thread_t *toBeReturned=threadManager.terminated.first;
+    threadManager.terminated.first=threadManager.terminated.first->next;
+    return toBeReturned;
   }
-};
 
+}
+*/
 /*******************************************************************************
                     Implementation of the Simple Threads API
 ********************************************************************************/
 
 int  init(){
-  return 1;
+ struct threadList tread = {NULL,{NULL,NULL},{NULL,NULL},{NULL,NULL}};
+ threadManager=tread;
+ return 1;
+}
+
+void start(){
+thread_t *startThread = getFromReady();
+ startThread->state=running;
+ threadManager.running=startThread;
+ setcontext(&threadManager.ready.first->ctx);
+ puts("i should not print");
 }
 
 tid_t spawn(void (*start)()){
@@ -136,13 +155,12 @@ tid_t spawn(void (*start)()){
   newThread.tid = maxId;
   newThread.state = ready;
   //  newThread.ctx = start;
-  newThread.next = &top;
 
   /* We make our new thread the bottom thread, it already
      points to our top thread */
-  bottom.next = &newThread;
-  bottom = newThread;
-
+  
+  addToReady(&newThread);
+  
   /* Now we need to intialize contexts, we start by allocating
      memory to be used as the stack of the context. This following
      part is taken from "contexts.c" */
@@ -167,17 +185,50 @@ tid_t spawn(void (*start)()){
   
   return -1;
 }
+
 void yield(){
-  thread_t *current=getRunning(top);
-  current->state=ready;
-  current->next
-  top
+  if(threadManager.ready.first!=NULL) {
+    thread_t *currentJob=getRunning();
+    currentJob->state=ready;
+    addToReady(currentJob);
+    thread_t *newJob=getFromReady();
+    newJob->state=running;
+    addToRunning(newJob);
+    if (swapcontext(&currentJob->ctx, &newJob->ctx) < 0) {
+      perror("swapcontext");
+      exit(EXIT_FAILURE);
+    }
+  }
 }
 
 void  done(){
+  thread_t *currentJob=getRunning();
+    currentJob->state=terminated;
+    free(&currentJob->ctx.uc_stack.ss_sp);
+    addToTerminated(currentJob);
+    thread_t *jobFromWaiting=getFromWaiting();
+    
+    while (jobFromWaiting!=NULL) {
+      jobFromWaiting->state=ready;
+      addToReady(jobFromWaiting);
+      jobFromWaiting->doneCaller=currentJob->tid;
+      jobFromWaiting=getFromWaiting();
+    }
+    
+    thread_t *nextJob=getFromReady();
+    addToRunning(nextJob);
 }
 
 tid_t join() {
-  return -1;
+   thread_t *currentJob=getRunning();
+   currentJob->state=waiting;
+   addToWaiting(currentJob);
+   thread_t *newJob=getFromReady();
+   addToRunning(newJob);
+   while (currentJob->state!=ready) {
 
+   }
+   return currentJob->doneCaller;
+   
 }
+
