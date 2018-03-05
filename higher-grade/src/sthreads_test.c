@@ -73,6 +73,7 @@ void fibonacci_slow() {
     }
     printf(" fib(%02d) = %d\n", n, fib(n));
     n = (n + 1) % INT_MAX;
+    join();
   }
 }
 
@@ -136,8 +137,9 @@ int main(){
   puts("\n==== Test program for the Simple Threads API ====\n");
 
   init(); // Initialization
-  spawn(&magic_numbers); //running
-  spawn(&numbers); //ready
+  spawn(&fibonacci_slow);
+  //  spawn(&magic_numbers); //running
+  // spawn(&numbers); //ready
   spawn(&letters);
   start();
 

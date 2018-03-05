@@ -52,7 +52,9 @@ return threadManager.running;
 }
 
 void addToRunning(thread_t *newJob) {
+  if (newJob!=NULL) {
   newJob->state=running;
+  
   thread_t *temp=threadManager.running;
   threadManager.running=newJob;
   if(temp!=NULL){
@@ -65,22 +67,26 @@ void addToRunning(thread_t *newJob) {
     setcontext(&newJob->ctx);
   }
 }
-
-void removeFromRunning() {
-  threadManager.running=NULL;
 }
+
 
 void addToReady(thread_t *thread) {
   thread->state=ready;
-  if (threadManager.ready.last==NULL) {
-    threadManager.ready.first=threadManager.ready.last=thread;
+  
+   if (threadManager.ready.first==NULL) {
+    threadManager.ready.first=thread;
     threadManager.ready.first->next=NULL;
+  }
+  else if(threadManager.ready.last==NULL) {
+    threadManager.ready.first->next=thread;
+    threadManager.ready.last=thread;
+    threadManager.ready.last->next=NULL;
   }
   else {
     threadManager.ready.last->next=thread;
     threadManager.ready.last=thread;
-  }
-
+    threadManager.ready.last->next=NULL;
+}
 }
 
 thread_t *getFromReady() {
@@ -96,12 +102,20 @@ thread_t *getFromReady() {
 
 void addToWaiting(thread_t *thread) {
   thread->state=waiting;
-  if (threadManager.waiting.last==NULL) {
-    threadManager.waiting.first=threadManager.waiting.last=thread;
+
+  if (threadManager.waiting.first==NULL) {
+    threadManager.waiting.first=thread;
+    threadManager.waiting.first->next=NULL;
+  }
+  else if(threadManager.waiting.last==NULL) {
+    threadManager.waiting.first->next=thread;
+    threadManager.waiting.last=thread;
+    threadManager.waiting.last->next=NULL;
   }
   else {
     threadManager.waiting.last->next=thread;
     threadManager.waiting.last=thread;
+    threadManager.waiting.last->next=NULL;
   }
 
 }
@@ -120,6 +134,7 @@ thread_t *getFromWaiting() {
 void addToTerminated(thread_t *thread) {
   thread->state=terminated;
   numThreads--;
+  
   if (threadManager.terminated.last==NULL) {
     threadManager.terminated.first=threadManager.terminated.last=thread;
   }
@@ -167,6 +182,7 @@ tid_t spawn(void (*start)()){
    The new tid will be the largest one */
   maxId = maxId+1;
   newThread->tid = maxId;
+
   //  newThread.ctx = start;
 
  /* We make our new thread the bottom thread, it already
@@ -193,7 +209,7 @@ tid_t spawn(void (*start)()){
   newThread->ctx.uc_stack.ss_sp    = stack;
   newThread->ctx.uc_stack.ss_size  = STACK_SIZE;
   newThread->ctx.uc_stack.ss_flags = 0;
-
+  
   makecontext(&newThread->ctx, start, 0);
    printf("%lu : \n",(unsigned long int)&newThread->ctx);
   //setcontext(&newThread.ctx);
@@ -214,14 +230,13 @@ void yield(){
 void  done(){
 
   thread_t*currentJob=getRunning();
-  removeFromRunning();
     addToTerminated(currentJob);
     thread_t *jobFromWaiting=getFromWaiting();
     
-    while (jobFromWaiting!=NULL) { //we never enter this loop 
+    while (jobFromWaiting!=NULL) { //we never enter this loop
       addToReady(jobFromWaiting);
       jobFromWaiting->doneCaller=currentJob->tid;
-      jobFromWaiting=getFromWaiting();
+      jobFromWaiting=getFromWaiting();;
     }
     free(currentJob);
     thread_t *nextJob=getFromReady();
@@ -234,9 +249,6 @@ tid_t join() {
    addToWaiting(currentJob);
    thread_t *newJob=getFromReady();
    addToRunning(newJob);
-   while (currentJob->state!=ready) {
-
-   }
    return currentJob->doneCaller;
    
 }
