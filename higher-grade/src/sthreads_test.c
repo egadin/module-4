@@ -18,8 +18,12 @@ void numbers() {
   while (true) {
     printf(" n = %d\n", n);
     n = (n + 1) % (INT_MAX);
-    if (n > 3) done();
+    if (n > 5) {
+      done();
+    }
+ 
     yield();
+   
   }
 }
 
@@ -107,11 +111,13 @@ void magic_numbers() {
   int n = 3;
   int m;
   while (true) {
+
     m = (n*(n*n+1)/2);
     if (m > 0) {
       printf(" magic(%d) = %d\n", n, m);
       n = (n+1) % INT_MAX;
     } else {
+      break;
       // Start over when m overflows.
       n = 3;
     }
@@ -132,6 +138,7 @@ int main(){
   init(); // Initialization
   spawn(&magic_numbers); //running
   spawn(&numbers); //ready
+  spawn(&letters);
   start();
 
   
