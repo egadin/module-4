@@ -19,10 +19,10 @@ void numbers() {
     printf(" n = %d\n", n);
     n = (n + 1) % (INT_MAX);
     if (n > 5) {
-      done();
+      //done();          //Commented out in order to test timer.
     }
  
-    yield();
+    // yield();
    
   }
 }
@@ -71,7 +71,7 @@ void fibonacci_slow() {
       // Restart on overflow.
       n = 0;
     }
-    printf(" fib(%02d) = %d\n", n, fib(n));
+    printf("sfib(%02d) = %d\n", n, fib(n));
     n = (n + 1) % INT_MAX;
     join();
   }
@@ -90,7 +90,7 @@ void fibonacci_fast() {
   int next = a + b;
 
   while(true) {
-    printf(" fib(%02d) = %d\n", n, a);
+    printf(" ffib(%02d) = %d\n", n, a);
     next = a + b;
     a = b;
     b = next;
@@ -118,12 +118,11 @@ void magic_numbers() {
       printf(" magic(%d) = %d\n", n, m);
       n = (n+1) % INT_MAX;
     } else {
-      break;
       // Start over when m overflows.
       n = 3;
     }
-    yield();
   }
+  //yield();      //commented out this line in order to test a double nonyielding main.
 }
 
 /*******************************************************************************
@@ -137,9 +136,10 @@ int main(){
   puts("\n==== Test program for the Simple Threads API ====\n");
 
   init(); // Initialization
-  spawn(&fibonacci_slow);
-  //  spawn(&magic_numbers); //running
-  // spawn(&numbers); //ready
+  spawn(&magic_numbers);
+  spawn(&fibonacci_fast);
+  spawn(&fibonacci_slow); //running
+  spawn(&numbers); //ready
   spawn(&letters);
   start();
 

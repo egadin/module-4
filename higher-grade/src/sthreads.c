@@ -17,10 +17,12 @@
 #include <stdbool.h>  /* true, false */
 
 #include "sthreads.h"
-
+#include <sys/time.h>  //ITIMER_REAL
+#include <string.h>
 /* Stack size for each context. */
 #define STACK_SIZE SIGSTKSZ*100
-
+#define TIMEOUT 500      //ms
+#define TIMER_TYPE ITIMER_REAL
 /*******************************************************************************
                              Global data structures
 
@@ -39,7 +41,7 @@ struct threadList {
 };
 
 struct threadList threadManager;
-  int numThreads = 0;
+int numThreads = 0;
 int maxId=0;
 
 /*******************************************************************************
@@ -157,12 +159,78 @@ thread_t *getFromTerminated() {
 
 }
 */
+
+int timer_signal(int timer_type) {
+  int sig;
+
+  switch (timer_type) {
+    case ITIMER_REAL:
+      sig = SIGALRM;
+      break;
+    case ITIMER_VIRTUAL:
+      sig = SIGVTALRM;
+      break;
+    case ITIMER_PROF:
+      sig = SIGPROF;
+      break;
+    default:
+      fprintf(stderr, "ERROR: unknown timer type %d!\n", timer_type);
+      exit(EXIT_FAILURE);
+  }
+
+  return sig;
+}
+
+/* Set a timer and a handler for the timer.
+
+   Arguments
+
+   type: type of timer, one of ITIMER_REAL, ITIMER_VIRTUAL, or ITIMER_PROF.
+
+   handler: timer signal handler.
+
+   ms: time in ms for the timer. 
+
+ */
+void set_timer(int type, void (*handler) (int), int ms) {
+  struct itimerval timer;
+  struct sigaction sa;
+
+  /* Install signal handler for the timer. */
+  memset (&sa, 0, sizeof (sa));
+  sa.sa_handler =  handler;
+  sigaction (timer_signal(type), &sa, NULL);
+
+  /* Configure the timer to expire after ms msec... */
+  timer.it_value.tv_sec = 0;
+  timer.it_value.tv_usec = ms*1000;
+  timer.it_interval.tv_sec = 0;
+  timer.it_interval.tv_usec = 0;
+
+  if (setitimer (type, &timer, NULL) < 0) {
+    perror("Setting timer");
+    exit(EXIT_FAILURE);
+  };
+}
+
+
+
+
+
+/* Timer signal handlar */
+void timer_handler (int signum) {
+  fprintf (stderr, "======> timer (%03d)\n", signum);
+  puts("test");
+  set_timer(TIMER_TYPE, timer_handler, TIMEOUT);
+  yield();
+}
 /*******************************************************************************
                     Implementation of the Simple Threads API
 ********************************************************************************/
 
 int  init(){
  struct threadList tread = {NULL,{NULL,NULL},{NULL,NULL},{NULL,NULL}};
+  set_timer(TIMER_TYPE, timer_handler, TIMEOUT);
  threadManager=tread;
  return 1;
 }
@@ -250,6 +318,5 @@ tid_t join() {
    thread_t *newJob=getFromReady();
    addToRunning(newJob);
    return currentJob->doneCaller;
-   
 }
 
