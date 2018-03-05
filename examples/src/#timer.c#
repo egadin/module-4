@@ -64,7 +64,7 @@ void set_timer(int type, void (*handler) (int), int ms) {
   sa.sa_handler =  handler;
   sigaction (timer_signal(type), &sa, NULL);
 
-  /* Configure the timer to expire after ms msec... */
+/* Configure the timer to expire after ms msec... */
   timer.it_value.tv_sec = 0;
   timer.it_value.tv_usec = ms*1000;
   timer.it_interval.tv_sec = 0;
